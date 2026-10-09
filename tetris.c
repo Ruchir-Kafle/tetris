@@ -251,7 +251,7 @@ int main(int argc, char *argv[]) {
                         if (tetris_grid[i][j]->contents != EMPTY && tetris_grid[i][j]->status == FALLING) {
                             int deltaX = 0;
                             
-                            if (j + 1 != COLUMNS - 1 && j - 1 != 0) {
+                            if (j != COLUMNS - 1 && j != 0) {
                                 if (j < COLUMNS-1 && horizontal_direction == 1) {
                                     deltaX = horizontal_direction;
                                 } else if (j > 0 && horizontal_direction == -1) {
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
                                 }
                             }
  
-                            if (deltaX != 0) {
+                            if (deltaX != 0 && tetris_grid[i][j+deltaX]->contents == EMPTY) {
                                 tetris_grid[i][j+deltaX]->contents = tetris_grid[i][j]->contents;
                                 tetris_grid[i][j+deltaX]->status = tetris_grid[i][j]->status;
 
@@ -287,7 +287,7 @@ int main(int argc, char *argv[]) {
                                 tetris_grid[i][j]->status = PLACED;
                             }
                         }
-                    } else if (game_state == GAME_PLACING && placing_counter >= speed) { 
+                    } else if (game_state == GAME_PLACING && placing_counter >= placing_speed) { 
                         if (tetris_grid[i][j]->status == FALLING) {
                             tetris_grid[i][j]->status = PLACED;
                             next_game_state = SPAWNING;
@@ -299,7 +299,8 @@ int main(int argc, char *argv[]) {
             
             if (game_state == INSTANT_FALL) {
                 speed = 0;
-                next_game_state = INSTANT_FALL;
+                if (next_game_state != GAME_PLACING)
+                    next_game_state = INSTANT_FALL;
             } else if (game_state == SPRINTING) {
                 speed = DEFAULT_SPEED / 2.0;
             } else {
