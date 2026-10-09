@@ -20,6 +20,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <errno.h>
 
 // Screen size vars
 #define SCREEN_WIDTH 900
@@ -30,8 +31,6 @@
 // Grid is ROWS blocks wide, COLUMNS tall, so it will be
 // BLOCK_SIZE * COLUMNS by BLOCK_SIZE * ROWS
 // Blank space will be SCREEN_WIDTH and SCREEN_HEIGHT minus these respectively
-#define ROWS 20
-#define COLUMNS 10
 #define BLOCK_SIZE 40
 
 #define TOTAL_GRID_WIDTH (COLUMNS * BLOCK_SIZE)
@@ -42,12 +41,13 @@
 #define PLACING_TIME 5
 #define DEFAULT_SPEED 1 // An action every DEFAULT_SPEED seconds
 #define DEFAULT_HORIZONTAL_SPEED 0.1 // An horizontal action every DEFAULT_HORIZONTAL_SPEED seconds
+#define DEFAULT_PLACING_SPEED 2
 
-    // Blocks state machine
-    typedef enum {
-        EMPTY,
-        SQUARE_PIECE,
-        I_PIECE,
+// Blocks state machine
+typedef enum {
+    EMPTY,
+    SQUARE_PIECE,
+    I_PIECE,
     L_PIECE,
     J_PIECE,
     T_PIECE
@@ -64,7 +64,6 @@ typedef enum {
     GAME_FALLING,
     INSTANT_FALL,
     SPRINTING,
-    WALL_COLLIDING,
     GAME_PLACING,
     SPAWNING,
     GAME_END,
@@ -77,12 +76,16 @@ typedef struct {
     block_status_t status;
 } grid_tile_t;
 
+int ROWS = 20;
+int COLUMNS = 10;
 
 game_state_t game_state = BEGIN;
 game_state_t next_game_state;
 float counter = 0; // time counter
 float horizontal_counter = 0;
+float placing_counter = 0;
 float speed = DEFAULT_SPEED; // Lower speed is quicker
+float placing_speed = DEFAULT_PLACING_SPEED;
 int horizontal_direction = 0; // -1 left, 1 right, 0 no lateral movement
 
 
@@ -96,15 +99,68 @@ void update() {
 void commandLineArgs(int argc, char* argv[]) {
     if (argc <= 1) return;
 
+    // -h or --help: help
+    // -r or --rows: set row num
+    // -c or --columns: set column num
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("Tetris is a game in which the player is presented with rows and columns in which blocks fall down.\n");
+            printf("The objective is to fill as many rows as possible, scoring more points as they clear out in higher quantities.\n");
+            
+            printf("\nFlags:\n");
+            printf("-r, --rows [INTEGER]: Set the number of rows in the grid\n");
+            printf("-c, --columns [INTEGER]: Set the number of columns in the grid\n");
+
             printf("\nInputs:\n");
             printf("Left Arrow Key: Lateral left movement\n");
             printf("Right Arrow Key: Lateral right movement\n");
             printf("Down Arrow Key: Quick downwards vertical movement\n");
             printf("Spacebar Key: Instant block placement.\n");
+            printf("P Key: Pause/unpause.\n");
+            printf("Enter Key: Begin game.\n");
             exit(0);
+        }
+
+        else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--rows") == 0) {
+            if (i + 1 < argc) {
+                char *endptr = NULL;
+
+                // Clearing errno
+                errno = 0;
+
+                // Convert row input string to an integer
+                // If there is a single non-digit character, endptr will pick it up.
+                long row_input = strtol(argv[i+1], &endptr, 10);
+
+                // Check if there are non-digit characters left over
+                if (*endptr != '\0') {
+                    printf("Rows input should be purely an integer");
+                    exit(1);
+                } else {
+                    ROWS = row_input;
+                }
+            }
+        }
+
+        else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--columns") == 0) {
+            if (i + 1 < argc) {
+                char *endptr = NULL;
+
+                // Clearing errno
+                errno = 0;
+
+                // Convert row input string to an integer
+                // If there is a single non-digit character, endptr will pick it up.
+                long col_input = strtol(argv[i+1], &endptr, 10);
+
+                if (*endptr != '\0') {
+                    printf("Columns input should be purely an integer");
+                    exit(1);
+                } else {
+                    COLUMNS = col_input;
+                }
+            }
         }
     }
 }
@@ -142,9 +198,19 @@ int main(int argc, char *argv[]) {
     // Main loop
     while (!WindowShouldClose()) {
 
+        // Raylib get time funciton
         float dt = GetFrameTime();
+        // Vertical action timer
         counter += dt;
+        // Horizontal action timer
         horizontal_counter += dt;
+
+        // Placing action timer
+        if (GAME_PLACING) {
+            placing_counter += dt;
+        } else {
+            placing_counter = 0;
+        }
 
         printf("%d", game_state);
         
@@ -153,12 +219,12 @@ int main(int argc, char *argv[]) {
             if (IsKeyDown(KEY_LEFT)) {horizontal_direction = -1;}
             else if (IsKeyDown(KEY_RIGHT)) {horizontal_direction = 1;}
             else if (IsKeyDown(KEY_DOWN)) {next_game_state = SPRINTING;}
-            else if (IsKeyPressed(KEY_ESCAPE)) {next_game_state = PAUSED;}
+            else if (IsKeyPressed(KEY_P)) {next_game_state = PAUSED;}
             else if (IsKeyPressed(KEY_SPACE)) {next_game_state = INSTANT_FALL;}
         } else if (game_state == GAME_END) {
             if (IsKeyPressed(KEY_ENTER)) {next_game_state = BEGIN;}
         } else if (game_state == PAUSED) {
-            if (IsKeyPressed(KEY_ESCAPE)) {next_game_state = GAME_FALLING;}
+            if (IsKeyPressed(KEY_P)) {next_game_state = GAME_FALLING;}
         }
 
 
@@ -184,22 +250,16 @@ int main(int argc, char *argv[]) {
                     if (horizontal_counter >= DEFAULT_HORIZONTAL_SPEED) {
                         if (tetris_grid[i][j]->contents != EMPTY && tetris_grid[i][j]->status == FALLING) {
                             int deltaX = 0;
-                            if (game_state == WALL_COLLIDING) {
-                                next_game_state = -1;
-                            } else {
+                            
+                            if (j + 1 != COLUMNS - 1 && j - 1 != 0) {
                                 if (j < COLUMNS-1 && horizontal_direction == 1) {
                                     deltaX = horizontal_direction;
                                 } else if (j > 0 && horizontal_direction == -1) {
                                     deltaX = horizontal_direction;
-                                } else if (j != 0) {
-                                    next_game_state = WALL_COLLIDING;
                                 }
-
-                                if (j + 1 == COLUMNS - 1 || j - 1 == 0)
-                                    next_game_state = WALL_COLLIDING;
                             }
+ 
                             if (deltaX != 0) {
-
                                 tetris_grid[i][j+deltaX]->contents = tetris_grid[i][j]->contents;
                                 tetris_grid[i][j+deltaX]->status = tetris_grid[i][j]->status;
 
@@ -227,7 +287,7 @@ int main(int argc, char *argv[]) {
                                 tetris_grid[i][j]->status = PLACED;
                             }
                         }
-                    } else if (game_state == GAME_PLACING && counter >= speed) { 
+                    } else if (game_state == GAME_PLACING && placing_counter >= speed) { 
                         if (tetris_grid[i][j]->status == FALLING) {
                             tetris_grid[i][j]->status = PLACED;
                             next_game_state = SPAWNING;
@@ -316,8 +376,13 @@ int main(int argc, char *argv[]) {
         if (counter >= speed) {
             counter -= speed;
         }
+
         if (horizontal_counter >= DEFAULT_HORIZONTAL_SPEED) {
             horizontal_counter -= DEFAULT_HORIZONTAL_SPEED;
+        }
+
+        if (placing_counter >= placing_speed) {
+            placing_counter -= placing_speed;
         }
 
         //
