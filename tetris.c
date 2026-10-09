@@ -43,11 +43,11 @@
 #define DEFAULT_SPEED 1 // An action every DEFAULT_SPEED seconds
 #define DEFAULT_HORIZONTAL_SPEED 0.1 // An horizontal action every DEFAULT_HORIZONTAL_SPEED seconds
 
-// Blocks state machine
-typedef enum {
-    EMPTY,
-    SQUARE_PIECE,
-    I_PIECE,
+    // Blocks state machine
+    typedef enum {
+        EMPTY,
+        SQUARE_PIECE,
+        I_PIECE,
     L_PIECE,
     J_PIECE,
     T_PIECE
@@ -64,7 +64,6 @@ typedef enum {
     GAME_FALLING,
     INSTANT_FALL,
     SPRINTING,
-    MOVING_HORIZONTAL,
     WALL_COLLIDING,
     GAME_PLACING,
     SPAWNING,
@@ -151,8 +150,8 @@ int main(int argc, char *argv[]) {
         
         // User input
         if (game_state <= GAME_PLACING) {
-            if (IsKeyDown(KEY_LEFT)) {horizontal_direction = -1; next_game_state = MOVING_HORIZONTAL;}
-            else if (IsKeyDown(KEY_RIGHT)) {horizontal_direction = 1; next_game_state = MOVING_HORIZONTAL;}
+            if (IsKeyDown(KEY_LEFT)) {horizontal_direction = -1;}
+            else if (IsKeyDown(KEY_RIGHT)) {horizontal_direction = 1;}
             else if (IsKeyDown(KEY_DOWN)) {next_game_state = SPRINTING;}
             else if (IsKeyPressed(KEY_ESCAPE)) {next_game_state = PAUSED;}
             else if (IsKeyPressed(KEY_SPACE)) {next_game_state = INSTANT_FALL;}
@@ -199,7 +198,6 @@ int main(int argc, char *argv[]) {
                                 if (j + 1 == COLUMNS - 1 || j - 1 == 0)
                                     next_game_state = WALL_COLLIDING;
                             }
-                            printf("print: %d\n", deltaX);
                             if (deltaX != 0) {
 
                                 tetris_grid[i][j+deltaX]->contents = tetris_grid[i][j]->contents;
@@ -229,7 +227,7 @@ int main(int argc, char *argv[]) {
                                 tetris_grid[i][j]->status = PLACED;
                             }
                         }
-                    } else if (game_state == GAME_PLACING && counter >= 1) { 
+                    } else if (game_state == GAME_PLACING && counter >= speed) { 
                         if (tetris_grid[i][j]->status == FALLING) {
                             tetris_grid[i][j]->status = PLACED;
                             next_game_state = SPAWNING;
