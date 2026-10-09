@@ -4,6 +4,23 @@ Of course, this game is not an original creation. The idea of Tetris has a long 
 
 Tetris is a game in which the player is presented with rows and columns in which blocks fall down. These blocks begin from the top of the grid, spawning and moving down one at a time. Once a randomly generated piece from a list of options reaches the bottom of the grid, it will begin to place, permanently setting it in place. As the player stacks blocks higher and higher, the grid will begin to fill, blocks stacking upon one another and placing sooner due to other blocks being valid placement spots beyond the floor of the grid. When a row fills, however, it will be cleared in full, the placed blocks above it will drop by a row, and the user will be awarded points. The goal of the game is to earn as many points as possible, which of course comes with surviving with a clean grid for as long as possible.
 
+# Features and Bugs
+
+Currently, the game is a bit bugged due to being done in a very limited scope of time. Things that you can expect to work include:
+
+1. Randomized block spawning
+2. Keyboard inputs working
+3. Graphical interface working
+
+Known bugs include:
+
+1. Individual cells of blocks splitting upon lateral movement
+
+2. Placing not working all the time
+
+3. Row clearing implementation not created
+
+
 # Inputs/How to Play
 
 Left Arrow Key: Lateral left movement
@@ -20,14 +37,21 @@ Enter Key: Begin game.
 
 # Building Procedure
 
-1. Begin by running the Makefile using the following command in a terminal at the root directory of this project:
+1. Begin by downloading the project. This can either be done by downloading the ZIP file from GitHub, or using the Git CLI:
+
+```
+git clone https://github.com/Ruchir-Kafle/tetris.git
+cd tetris
+```
+
+2. Run the Makefile using the following command in a terminal at the root directory of this project:
 
 `make`
 
 This, if the user has GCC installed on their device, should compile the C code directly into a final executable of the game.
 
 
-2. Running the project is simple, use the command:
+3. Running the project is simple, use the command:
 
 `./main`
 
