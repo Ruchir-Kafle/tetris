@@ -7,10 +7,16 @@ Tetris is a game in which the player is presented with rows and columns in which
 # Inputs/How to Play
 
 Left Arrow Key: Lateral left movement
+
 Right Arrow Key: Lateral right movement
+
 Down Arrow Key: Quick downwards vertical movement
+
 Spacebar Key: Instant block placement.
-P Key: Pause.
+
+P Key: Pause/unpause.
+
+Enter Key: Begin game.
 
 # Building Procedure
 
